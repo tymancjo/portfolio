@@ -66,17 +66,21 @@ def build_portfolio():
                 with open(info_md_path, "r", encoding="utf-8") as f:
                     description = markdown2.markdown(f.read())
             
-            photos_in_gallery = []
-            for photo_name in sorted(os.listdir(gallery_path)):
+            photos_in_gallery_unsorted = []
+            for photo_name in os.listdir(gallery_path):
                 if photo_name.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
-                    photos_in_gallery.append(os.path.join(gallery_path, photo_name))
+                    full_path = os.path.join(gallery_path, photo_name)
+                    photos_in_gallery_unsorted.append(full_path)
+            
+            # Sort photos by modification time (newest first)
+            photos_in_gallery = sorted(photos_in_gallery_unsorted, key=os.path.getmtime, reverse=True)
             
             # Generate individual gallery page
             if photos_in_gallery:
                 generate_gallery_page(gallery_dir, photos_in_gallery, description)
                 # Add link to index.html
                 # For now, just a simple link, will be a card later
-                first_photo = photos_in_gallery[0]
+                first_photo = photos_in_gallery[0] # Newest photo is the cover
                 gallery_links_html.append(f"""
         <a href="{gallery_dir}.html" class="gallery-card">
             <img src="{first_photo}" alt="{gallery_dir} cover">
