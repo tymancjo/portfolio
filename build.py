@@ -24,6 +24,10 @@ def generate_gallery_page(gallery_name, photos, description):
 <body>
     <header>
         <h1>Fotografia Tymancja - {gallery_name}</h1>
+        <nav>
+            <a href="index.html">Galerie</a>
+            <a href="contact.html">Kontakt</a>
+        </nav>
         <p class="back-to-home"><a href="index.html">start</a></p>
         <p>{description}</p>
     </header>

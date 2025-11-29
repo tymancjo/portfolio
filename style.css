@@ -19,6 +19,25 @@ header h1 {
     color: #555; /* Ensure h1 is not blue */
 }
 
+header nav {
+    text-align: center;
+    margin: 1em 0;
+}
+
+header nav a {
+    color: #555;
+    text-decoration: none;
+    padding: 0.5em 1em;
+    margin: 0 0.5em;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+header nav a:hover {
+    background-color: #f0f0f0;
+}
+
 header p.back-to-home {
     text-align: center;
     margin-top: 0.5em;
