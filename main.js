@@ -75,29 +75,44 @@ document.addEventListener('DOMContentLoaded', () => {
         lightbox.appendChild(imgElement);
     }
 
-    // --- Touch/Swipe Navigation ---
+    // --- Touch/Swipe Navigation (Robust version for iOS Safari) ---
     let touchStartX = 0;
+    let touchStartY = 0;
     let touchEndX = 0;
+    let touchEndY = 0;
 
     lightbox.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
+        touchStartX = e.changedTouches[0].clientX;
+        touchStartY = e.changedTouches[0].clientY;
     }, { passive: true });
 
+    lightbox.addEventListener('touchmove', (e) => {
+        // This is primarily to prevent vertical scrolling when a horizontal swipe is intended.
+        // We can add more complex logic here if needed, but for now, we'll keep it simple
+        // as the main calculation happens on touchend.
+    }, { passive: true });
+
+
     lightbox.addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
+        touchEndX = e.changedTouches[0].clientX;
+        touchEndY = e.changedTouches[0].clientY;
         handleSwipeGesture();
     }, { passive: true });
 
     function handleSwipeGesture() {
-        const swipeDistance = touchEndX - touchStartX;
+        const swipeX = touchEndX - touchStartX;
+        const swipeY = touchEndY - touchStartY;
         const swipeThreshold = 50; // Minimum distance for a swipe
 
-        if (swipeDistance > swipeThreshold) {
-            // Swipe Right (previous image)
-            showImage(currentImageIndex - 1);
-        } else if (swipeDistance < -swipeThreshold) {
-            // Swipe Left (next image)
-            showImage(currentImageIndex + 1);
+        // Check if the swipe is more horizontal than vertical
+        if (Math.abs(swipeX) > Math.abs(swipeY)) {
+            if (swipeX > swipeThreshold) {
+                // Swipe Right (previous image)
+                showImage(currentImageIndex - 1);
+            } else if (swipeX < -swipeThreshold) {
+                // Swipe Left (next image)
+                showImage(currentImageIndex + 1);
+            }
         }
     }
     // --- End Touch/Swipe Navigation ---
