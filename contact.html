@@ -4,22 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fotografia Tymancja - Kontakt</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <header>
-        <h1>Fotografia Tymancja</h1>
-        <p class="back-to-home"><a href="index.html">start</a></p>
+<body class="light-theme">
+    <header class="gallery-header">
+        <div class="header-content">
+            <h1 class="site-title"><a href="index.html">Fotografia Tymancja</a></h1>
+            <nav class="main-nav">
+                <a href="index.html">Galerie</a>
+                <a href="contact.html" class="active">Kontakt</a>
+            </nav>
+        </div>
     </header>
 
-    <main>
-        <h2>Jeżeli czujesz taką potrzebę, napisz</h2>
-        <p>email: <a href="mailto:tomasz.tomanek@gmail.com">tomasz.tomanek@gmail.com</a></p>
+    <main class="contact-container">
+        <div class="contact-content">
+            <div class="contact-image">
+                <img src="tymancjo/21-12-25_14-47-51_DSCF5539_X-T30_Zielony.jpg" alt="Tomasz Tomanek">
+            </div>
+            <div class="contact-text">
+                <h2>Jeżeli czujesz taką potrzebę, napisz</h2>
+                <p>Jestem otwarty na nowe projekty, współpracę lub po prostu krótką rozmowę o fotografii.</p>
+                <div class="contact-details">
+                    <p>email: <a href="mailto:tomasz.tomanek@gmail.com">tomasz.tomanek@gmail.com</a></p>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <footer>
+    <footer class="site-footer">
         <p>&copy; 2025 Fotografia Tymancja</p>
     </footer>
 
+    <script src="main.js"></script>
 </body>
 </html>

@@ -6,27 +6,37 @@ document.addEventListener('DOMContentLoaded', () => {
     lightbox.classList.add('lightbox');
     document.body.appendChild(lightbox);
 
-    const images = document.querySelectorAll('.gallery-item img');
+    const galleryLinks = document.querySelectorAll('.gallery-item');
     let currentImageIndex = 0;
-    let galleryImages = []; // To store all images in the current gallery
+    let galleryImages = []; // Array of objects: { thumb, full }
 
-    images.forEach((image, index) => {
-        image.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent the link from opening the image file directly
-            // Populate galleryImages with all images from the current gallery
-            galleryImages = Array.from(document.querySelectorAll('.gallery-grid img'));
-            currentImageIndex = galleryImages.findIndex(img => img.src === e.target.src);
-            
+    // Initialize gallery images array
+    galleryLinks.forEach((link, index) => {
+        const img = link.querySelector('img');
+        galleryImages.push({
+            thumb: img.src,
+            full: link.getAttribute('href')
+        });
+
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentImageIndex = index;
             showImage(currentImageIndex);
             lightbox.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
         });
     });
 
     lightbox.addEventListener('click', (e) => {
         if (e.target === lightbox) {
-            lightbox.style.display = 'none';
+            closeLightbox();
         }
     });
+
+    function closeLightbox() {
+        lightbox.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 
     function showImage(index) {
         if (index < 0) {
@@ -37,96 +47,60 @@ document.addEventListener('DOMContentLoaded', () => {
             currentImageIndex = index;
         }
 
-        const imgElement = document.createElement('img');
-        imgElement.src = galleryImages[currentImageIndex].src;
-        imgElement.classList.add('lightbox-content');
-
-        // Clear previous content
+        const data = galleryImages[currentImageIndex];
+        
         lightbox.innerHTML = '';
 
-        // Add close button
-        const closeButton = document.createElement('span');
-        closeButton.classList.add('close-button');
-        closeButton.innerHTML = '&times;';
-        closeButton.addEventListener('click', () => {
-            lightbox.style.display = 'none';
-        });
-        lightbox.appendChild(closeButton);
+        // Close button
+        const closeBtn = document.createElement('span');
+        closeBtn.className = 'close-button';
+        closeBtn.innerHTML = '&times;';
+        closeBtn.onclick = closeLightbox;
+        lightbox.appendChild(closeBtn);
 
-        // Add navigation buttons
-        const prevButton = document.createElement('a');
-        prevButton.classList.add('prev-button');
-        prevButton.innerHTML = '&#10094;'; // Left arrow
-        prevButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent lightbox from closing
-            showImage(currentImageIndex - 1);
-        });
-        lightbox.appendChild(prevButton);
+        // Prev/Next buttons
+        const prevBtn = document.createElement('a');
+        prevBtn.className = 'prev-button';
+        prevBtn.innerHTML = '&#10094;';
+        prevBtn.onclick = (e) => { e.stopPropagation(); showImage(currentImageIndex - 1); };
+        lightbox.appendChild(prevBtn);
 
-        const nextButton = document.createElement('a');
-        nextButton.classList.add('next-button');
-        nextButton.innerHTML = '&#10095;'; // Right arrow
-        nextButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent lightbox from closing
-            showImage(currentImageIndex + 1);
-        });
-        lightbox.appendChild(nextButton);
+        const nextBtn = document.createElement('a');
+        nextBtn.className = 'next-button';
+        nextBtn.innerHTML = '&#10095;';
+        nextBtn.onclick = (e) => { e.stopPropagation(); showImage(currentImageIndex + 1); };
+        lightbox.appendChild(nextBtn);
 
+        // Main Image
+        const imgElement = document.createElement('img');
+        imgElement.src = data.full;
+        imgElement.classList.add('lightbox-content');
         lightbox.appendChild(imgElement);
     }
 
-    // --- Touch/Swipe Navigation (Robust version for iOS Safari) ---
+    // Touch events
     let touchStartX = 0;
-    let touchStartY = 0;
     let touchEndX = 0;
-    let touchEndY = 0;
 
     lightbox.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].clientX;
-        touchStartY = e.changedTouches[0].clientY;
     }, { passive: true });
-
-    lightbox.addEventListener('touchmove', (e) => {
-        // This is primarily to prevent vertical scrolling when a horizontal swipe is intended.
-        // We can add more complex logic here if needed, but for now, we'll keep it simple
-        // as the main calculation happens on touchend.
-    }, { passive: true });
-
 
     lightbox.addEventListener('touchend', (e) => {
         touchEndX = e.changedTouches[0].clientX;
-        touchEndY = e.changedTouches[0].clientY;
-        handleSwipeGesture();
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0) showImage(currentImageIndex + 1); // Swipe left -> next
+            else showImage(currentImageIndex - 1); // Swipe right -> prev
+        }
     }, { passive: true });
 
-    function handleSwipeGesture() {
-        const swipeX = touchEndX - touchStartX;
-        const swipeY = touchEndY - touchStartY;
-        const swipeThreshold = 50; // Minimum distance for a swipe
-
-        // Check if the swipe is more horizontal than vertical
-        if (Math.abs(swipeX) > Math.abs(swipeY)) {
-            if (swipeX > swipeThreshold) {
-                // Swipe Right (previous image)
-                showImage(currentImageIndex - 1);
-            } else if (swipeX < -swipeThreshold) {
-                // Swipe Left (next image)
-                showImage(currentImageIndex + 1);
-            }
-        }
-    }
-    // --- End Touch/Swipe Navigation ---
-
-    // Keyboard navigation
+    // Keyboard
     document.addEventListener('keydown', (e) => {
         if (lightbox.style.display === 'block') {
-            if (e.key === 'ArrowLeft') {
-                showImage(currentImageIndex - 1);
-            } else if (e.key === 'ArrowRight') {
-                showImage(currentImageIndex + 1);
-            } else if (e.key === 'Escape') {
-                lightbox.style.display = 'none';
-            }
+            if (e.key === 'ArrowLeft') showImage(currentImageIndex - 1);
+            else if (e.key === 'ArrowRight') showImage(currentImageIndex + 1);
+            else if (e.key === 'Escape') closeLightbox();
         }
     });
 });
