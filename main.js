@@ -23,7 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
             currentImageIndex = index;
             showImage(currentImageIndex);
             lightbox.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            document.body.style.overflow = 'hidden';
+
+            const hint = document.createElement('div');
+            hint.className = 'keyboard-hint';
+            hint.textContent = '← → nawigacja    esc zamknij';
+            lightbox.appendChild(hint);
         });
     });
 

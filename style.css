@@ -190,6 +190,55 @@ header {
     opacity: 0.9;
 }
 
+/* Breadcrumb */
+.breadcrumb {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--secondary-text);
+    margin-bottom: 1.5rem;
+}
+
+.breadcrumb a {
+    color: var(--secondary-text);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.breadcrumb a:hover {
+    opacity: 1;
+    border-bottom-color: var(--secondary-text);
+}
+
+/* Photo count badge on gallery cards */
+.photo-count {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--secondary-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Lightbox keyboard hint */
+.keyboard-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    animation: hint-fadeout 1s ease 2.5s forwards;
+    pointer-events: none;
+}
+
+@keyframes hint-fadeout {
+    to { opacity: 0; }
+}
+
 /* Contact Page Styles */
 .contact-container {
     max-width: 1200px;
