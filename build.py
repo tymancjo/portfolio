@@ -246,7 +246,7 @@ def build_changelog_section(galleries_data, max_entries=5):
 def load_article_meta(dir_path):
     """Parse YAML front matter from articles/<slug>/info.md. Returns dict with title, date, excerpt."""
     info_path = os.path.join(dir_path, "info.md")
-    meta = {"title": None, "date": None, "excerpt": ""}
+    meta = {"title": None, "date": None, "excerpt": "", "hidden": "false"}
     if not os.path.exists(info_path):
         return meta
     with open(info_path, "r", encoding="utf-8") as f:
@@ -445,6 +445,8 @@ def build_portfolio():
         for slug in article_slugs:
             article_path = os.path.join(ARTICLES_DIR, slug)
             meta = load_article_meta(article_path)
+            if meta.get("hidden") == "true":
+                continue
             article_md_path = os.path.join(article_path, "article.md")
             if not os.path.exists(article_md_path):
                 continue

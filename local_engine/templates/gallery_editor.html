@@ -1,132 +1,385 @@
 {% extends "base.html" %}
 {% block title_suffix %} — {{ gallery_id }}{% endblock %}
 
+{% block styles %}
+/* ── Upload zone ── */
+.upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--r);
+    padding: 2.25rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--surface);
+    margin-bottom: 1.75rem;
+    position: relative;
+}
+.upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0;
+    cursor: pointer; width: 100%; height: 100%;
+}
+.upload-zone.drag-active { border-color: var(--accent); background: #f8f8f9; }
+.upload-zone.uploading { pointer-events: none; opacity: 0.75; }
+.uz-icon { font-size: 2rem; margin-bottom: 0.5rem; line-height: 1; }
+.uz-text { font-size: 0.9rem; color: var(--muted); }
+.uz-text strong { color: var(--text); }
+.uz-bar-wrap { margin-top: 0.9rem; }
+.uz-bar-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
+.uz-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.uz-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0; transition: width 0.35s; }
+
+/* ── Photo grid ── */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1.75rem;
+}
+.photo-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    cursor: grab;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    position: relative;
+    user-select: none;
+}
+.photo-tile:active { cursor: grabbing; }
+.photo-tile.dragging { opacity: 0.35; transform: scale(0.97); }
+.photo-tile.drop-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.photo-tile.is-hidden { opacity: 0.45; }
+
+.photo-thumb {
+    position: relative;
+    aspect-ratio: 3/2;
+    overflow: hidden;
+    background: var(--bg);
+}
+.photo-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.3s;
+}
+.photo-tile:not(.dragging):hover .photo-thumb img { transform: scale(1.04); }
+
+.photo-preview-btn {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0);
+    transition: background 0.2s;
+    cursor: zoom-in;
+}
+.photo-preview-btn:hover { background: rgba(0,0,0,0.32); }
+.photo-preview-btn svg {
+    opacity: 0; transition: opacity 0.2s;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+.photo-preview-btn:hover svg { opacity: 1; }
+
+.drag-handle {
+    position: absolute; top: 0.4rem; left: 0.4rem;
+    background: rgba(255,255,255,0.88); border-radius: 4px;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; color: #555; cursor: grab;
+    opacity: 0; transition: opacity 0.15s;
+}
+.photo-tile:hover .drag-handle { opacity: 1; }
+
+.photo-delete {
+    position: absolute; top: 0.4rem; right: 0.4rem;
+    background: rgba(220,38,38,0.82); border: none; border-radius: 4px;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 0.75rem; cursor: pointer; line-height: 1;
+    opacity: 0; transition: opacity 0.15s;
+    backdrop-filter: blur(2px);
+}
+.photo-tile:hover .photo-delete { opacity: 1; }
+.photo-delete:hover { background: var(--danger); }
+
+.photo-body { padding: 0.5rem 0.6rem 0.65rem; }
+.photo-fname { font-size: 0.68rem; color: var(--muted); word-break: break-all; margin-bottom: 0.4rem; }
+.photo-body input[type="text"] {
+    padding: 0.3rem 0.5rem; font-size: 0.78rem; margin-bottom: 0.3rem; border-radius: 4px;
+}
+.hidden-row {
+    display: flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: var(--muted); cursor: pointer; margin-top: 0.25rem;
+    width: fit-content;
+}
+.hidden-row input[type="checkbox"] { cursor: pointer; margin: 0; }
+
+/* ── Preview overlay ── */
+#prev-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.93); z-index: 500;
+    align-items: center; justify-content: center;
+    cursor: zoom-out;
+}
+#prev-overlay.open { display: flex; }
+#prev-img {
+    max-width: 90vw; max-height: 88vh;
+    object-fit: contain; cursor: default;
+    border-radius: 2px;
+}
+.prev-close {
+    position: absolute; top: 1.25rem; right: 1.5rem;
+    color: rgba(255,255,255,0.6); font-size: 1.4rem;
+    cursor: pointer; background: none; border: none; line-height: 1; padding: 0.5rem;
+}
+.prev-close:hover { color: #fff; }
+.prev-caption {
+    position: absolute; bottom: 1.75rem; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.55); font-size: 0.78rem;
+    text-align: center; max-width: 80vw; pointer-events: none;
+}
+
+/* ── Save bar ── */
+.save-bar {
+    position: sticky; bottom: 0;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border);
+    padding: 0.7rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    z-index: 100;
+}
+.save-bar-info { font-size: 0.82rem; color: var(--muted); }
+{% endblock %}
+
 {% block content %}
 <div class="container">
-    <p style="color:#888; font-size:0.85rem; margin-bottom:0.5rem;"><a href="/">← Dashboard</a></p>
-    <h1 style="font-size:1.4rem; font-weight:500; margin-bottom:1.5rem;">{{ gallery_id }}</h1>
-
-    <!-- Description -->
-    <div class="card" style="margin-bottom:1.5rem;">
-        <h2 style="font-size:0.95rem; font-weight:500; margin-bottom:0.75rem;">Opis galerii (info.md)</h2>
-        <form method="post" action="/gallery/{{ gallery_id }}/description">
-            <textarea name="description" rows="4">{{ description }}</textarea>
-            <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Zapisz opis</button>
+    <div class="page-hdr" style="justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
+            <a href="/" class="back-link">← Dashboard</a>
+            <h1 class="page-title">{{ gallery_id }}</h1>
+            <span style="color:var(--muted); font-size:0.83rem;">{{ manifest.photos|length }} zdjęć</span>
+        </div>
+        <form method="post" action="/gallery/{{ gallery_id }}/delete"
+              onsubmit="return confirm('Usunąć galerię „{{ gallery_id }}" wraz z wszystkimi zdjęciami? Tej operacji nie można cofnąć.')">
+            <button type="submit" class="btn btn-danger btn-sm">Usuń galerię</button>
         </form>
     </div>
 
-    <!-- Upload -->
-    <div class="card" style="margin-bottom:1.5rem;">
-        <h2 style="font-size:0.95rem; font-weight:500; margin-bottom:0.75rem;">Dodaj zdjęcia</h2>
-        <input type="file" id="upload-input" accept="image/*" multiple style="width:auto;">
-        <button class="btn btn-primary" style="margin-left:0.5rem;" onclick="uploadPhotos()">Wgraj</button>
-        <div id="upload-status" style="margin-top:0.5rem; font-size:0.82rem; color:#888;"></div>
+    <!-- Description -->
+    <div class="card" style="margin-bottom:1.25rem;">
+        <div class="section-label">Opis galerii (info.md)</div>
+        <form method="post" action="/gallery/{{ gallery_id }}/description">
+            <textarea name="description" rows="5" placeholder="Opis galerii w Markdown...">{{ description }}</textarea>
+            <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Zapisz opis</button>
+        </form>
     </div>
 
-    <!-- Photo grid (drag-to-reorder) -->
-    <div class="card">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
-            <h2 style="font-size:0.95rem; font-weight:500;">Zdjęcia — przeciągnij aby zmienić kolejność</h2>
-            <button class="btn btn-primary" onclick="saveManifest()">Zapisz kolejność</button>
+    <!-- Upload zone -->
+    <div id="upload-zone" class="upload-zone">
+        <input type="file" id="upload-input" accept="image/*" multiple>
+        <div class="uz-icon">⬆</div>
+        <div class="uz-text"><strong>Przeciągnij zdjęcia tutaj</strong><br>lub kliknij, aby wybrać pliki</div>
+        <div id="uz-progress" style="display:none;" class="uz-bar-wrap">
+            <div class="uz-bar-label" id="uz-label">Wgrywanie...</div>
+            <div class="uz-bar"><div class="uz-bar-fill" id="uz-fill"></div></div>
         </div>
-        <div id="photo-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:0.75rem;">
-            {% for photo in manifest.photos %}
-            <div class="photo-tile" draggable="true"
-                 data-filename="{{ photo.filename }}"
-                 data-title="{{ photo.title or '' }}"
-                 data-description="{{ photo.description or '' }}"
-                 data-hidden="{{ 'true' if photo.hidden else 'false' }}"
-                 style="border:1px solid #e0e0e0; border-radius:6px; overflow:hidden; cursor:grab; background:#fff; position:relative;">
+    </div>
+
+    <!-- Photo grid -->
+    <div class="section-label">Zdjęcia — przeciągnij, aby zmienić kolejność</div>
+    <div class="photo-grid" id="photo-grid">
+        {% for photo in manifest.photos %}
+        <div class="photo-tile {% if photo.hidden %}is-hidden{% endif %}"
+             draggable="true"
+             data-filename="{{ photo.filename }}">
+            <div class="photo-thumb">
                 <img src="{{ thumb_prefix }}{{ photo.filename }}"
                      onerror="this.src='{{ photo_prefix }}{{ photo.filename }}'"
-                     style="width:100%; aspect-ratio:3/2; object-fit:cover; display:block;"
-                     loading="lazy">
-                <div style="padding:0.4rem 0.5rem;">
-                    <div style="font-size:0.72rem; color:#999; word-break:break-all; margin-bottom:0.3rem;">{{ photo.filename }}</div>
-                    <input type="text" placeholder="Tytuł" value="{{ photo.title or '' }}"
-                           class="photo-title-input" style="width:100%; font-size:0.78rem; padding:3px 5px; margin-bottom:3px;">
-                    <input type="text" placeholder="Opis (opcjonalny)" value="{{ photo.description or '' }}"
-                           class="photo-desc-input" style="width:100%; font-size:0.78rem; padding:3px 5px;">
-                    <label style="margin-top:4px; font-size:0.75rem; display:flex; align-items:center; gap:4px; cursor:pointer;">
-                        <input type="checkbox" class="photo-hidden-input" {% if photo.hidden %}checked{% endif %}> Ukryj
-                    </label>
+                     loading="lazy" alt="{{ photo.filename }}">
+                <div class="photo-preview-btn"
+                     onclick="openPreview('{{ photo_prefix }}{{ photo.filename }}', '{{ (photo.title or photo.filename)|e }}')">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
                 </div>
             </div>
-            {% endfor %}
+            <div class="drag-handle" title="Przeciągnij">⣿</div>
+            <button class="photo-delete" title="Usuń zdjęcie"
+                    onclick="deletePhoto('{{ photo.filename }}', this.closest('.photo-tile'))">✕</button>
+            <div class="photo-body">
+                <div class="photo-fname">{{ photo.filename }}</div>
+                <input type="text" class="photo-title" placeholder="Tytuł (opcjonalny)" value="{{ photo.title or '' }}">
+                <input type="text" class="photo-desc" placeholder="Opis" value="{{ photo.description or '' }}">
+                <label class="hidden-row">
+                    <input type="checkbox" class="photo-hidden" {% if photo.hidden %}checked{% endif %}>
+                    Ukryte
+                </label>
+            </div>
         </div>
-        <div id="save-status" style="margin-top:0.75rem; font-size:0.82rem; color:#888;"></div>
+        {% endfor %}
     </div>
 </div>
 
+<!-- Sticky save bar -->
+<div class="save-bar">
+    <span class="save-bar-info" id="save-info">Zmiany są zapisywane automatycznie po edycji.</span>
+    <button class="btn btn-primary" onclick="saveManifest()">Zapisz teraz</button>
+</div>
+
+<!-- Preview overlay -->
+<div id="prev-overlay" onclick="closePrev()">
+    <button class="prev-close" onclick="closePrev()">✕</button>
+    <img id="prev-img" src="" alt="">
+    <div class="prev-caption" id="prev-caption"></div>
+</div>
+
 <script>
-// --- Drag to reorder ---
+const galleryId = {{ gallery_id | tojson }};
 const grid = document.getElementById('photo-grid');
 let dragged = null;
+let autoTimer;
 
+/* ── Drag to reorder ── */
 grid.addEventListener('dragstart', e => {
-    dragged = e.target.closest('.photo-tile');
-    setTimeout(() => dragged.style.opacity = '0.4', 0);
+    const tile = e.target.closest('.photo-tile');
+    if (!tile) return;
+    // Only allow drags from tile itself, not from file OS drag
+    if (e.dataTransfer.types.includes('Files')) return;
+    dragged = tile;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tile.dataset.filename);
+    setTimeout(() => tile.classList.add('dragging'), 0);
 });
-grid.addEventListener('dragend', e => {
-    e.target.closest('.photo-tile').style.opacity = '';
+grid.addEventListener('dragend', () => {
+    if (dragged) dragged.classList.remove('dragging');
+    grid.querySelectorAll('.drop-target').forEach(t => t.classList.remove('drop-target'));
     dragged = null;
+    scheduleAutoSave();
 });
 grid.addEventListener('dragover', e => {
+    if (e.dataTransfer.types.includes('Files')) return;
     e.preventDefault();
     const target = e.target.closest('.photo-tile');
-    if (target && target !== dragged) {
-        const rect = target.getBoundingClientRect();
-        const after = e.clientX > rect.left + rect.width / 2;
-        grid.insertBefore(dragged, after ? target.nextSibling : target);
-    }
+    if (!target || target === dragged) return;
+    grid.querySelectorAll('.drop-target').forEach(t => t.classList.remove('drop-target'));
+    target.classList.add('drop-target');
+    const rect = target.getBoundingClientRect();
+    const after = e.clientX > rect.left + rect.width / 2;
+    grid.insertBefore(dragged, after ? target.nextSibling : target);
 });
 
-// --- Collect manifest from current DOM state ---
+/* ── Auto-save ── */
+function scheduleAutoSave() {
+    document.getElementById('save-info').textContent = 'Niezapisane zmiany...';
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => saveManifest(true), 1400);
+}
+grid.addEventListener('input', scheduleAutoSave);
+grid.addEventListener('change', scheduleAutoSave);
+
 function buildManifest() {
     const photos = [];
-    document.querySelectorAll('.photo-tile').forEach((tile, i) => {
+    grid.querySelectorAll('.photo-tile').forEach((tile, i) => {
         photos.push({
             filename: tile.dataset.filename,
             order: i,
-            title: tile.querySelector('.photo-title-input').value.trim() || null,
-            description: tile.querySelector('.photo-desc-input').value.trim() || null,
-            hidden: tile.querySelector('.photo-hidden-input').checked,
+            title: tile.querySelector('.photo-title').value.trim() || null,
+            description: tile.querySelector('.photo-desc').value.trim() || null,
+            hidden: tile.querySelector('.photo-hidden').checked,
         });
     });
-    return {
-        version: 1,
-        title_override: null,
-        cover: null,
-        photos,
-    };
+    return {version:1, title_override:null, cover:null, photos};
 }
 
-function saveManifest() {
-    const status = document.getElementById('save-status');
-    status.textContent = 'Zapisywanie...';
-    fetch('/gallery/{{ gallery_id }}/manifest', {
+function saveManifest(auto = false) {
+    const info = document.getElementById('save-info');
+    info.textContent = 'Zapisywanie...';
+    fetch(`/gallery/${galleryId}/manifest`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(buildManifest()),
-    }).then(r => r.json()).then(() => {
-        status.textContent = 'Zapisano ✓';
-        setTimeout(() => status.textContent = '', 2000);
-    });
+    })
+    .then(r => r.json())
+    .then(() => {
+        info.textContent = 'Zapisano ✓';
+        // Sync hidden class
+        grid.querySelectorAll('.photo-tile').forEach(tile => {
+            tile.classList.toggle('is-hidden', tile.querySelector('.photo-hidden').checked);
+        });
+        if (!auto) showToast('Zapisano', 'ok');
+    })
+    .catch(() => { info.textContent = 'Błąd zapisu'; showToast('Błąd zapisu', 'err'); });
 }
 
-// --- Upload ---
-function uploadPhotos() {
-    const input = document.getElementById('upload-input');
-    const status = document.getElementById('upload-status');
-    if (!input.files.length) return;
+/* ── Upload ── */
+const zone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('upload-input');
+
+zone.addEventListener('dragover', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault(); e.stopPropagation();
+    zone.classList.add('drag-active');
+});
+zone.addEventListener('dragleave', e => {
+    if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-active');
+});
+zone.addEventListener('drop', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault(); e.stopPropagation();
+    zone.classList.remove('drag-active');
+    uploadFiles(Array.from(e.dataTransfer.files));
+});
+fileInput.addEventListener('change', () => uploadFiles(Array.from(fileInput.files)));
+
+function uploadFiles(files) {
+    const valid = files.filter(f => f.type.startsWith('image/'));
+    if (!valid.length) return;
+    const prog = document.getElementById('uz-progress');
+    const label = document.getElementById('uz-label');
+    const fill = document.getElementById('uz-fill');
+    zone.classList.add('uploading');
+    prog.style.display = 'block';
+    label.textContent = `Wgrywanie ${valid.length} pliku/-ów...`;
+    fill.style.width = '25%';
     const fd = new FormData();
-    for (const f of input.files) fd.append('photos', f);
-    status.textContent = `Wgrywanie ${input.files.length} plików...`;
-    fetch('/gallery/{{ gallery_id }}/upload', {method: 'POST', body: fd})
+    valid.forEach(f => fd.append('photos', f));
+    fetch(`/gallery/${galleryId}/upload`, {method:'POST', body:fd})
         .then(r => r.json())
         .then(data => {
-            status.textContent = `Wgrano: ${data.saved.join(', ')}. Odśwież stronę.`;
+            fill.style.width = '100%';
+            label.textContent = `Wgrano ${data.saved.length} plików`;
+            showToast(`Wgrano ${data.saved.length} zdjęć`, 'ok');
+            setTimeout(() => location.reload(), 1000);
+        })
+        .catch(() => {
+            zone.classList.remove('uploading');
+            prog.style.display = 'none';
+            showToast('Błąd wgrywania', 'err');
         });
+}
+
+/* ── Preview ── */
+function openPreview(url, caption) {
+    document.getElementById('prev-img').src = url;
+    document.getElementById('prev-caption').textContent = caption || '';
+    const o = document.getElementById('prev-overlay');
+    o.style.display = 'flex';
+    o.classList.add('open');
+}
+function closePrev() {
+    const o = document.getElementById('prev-overlay');
+    o.style.display = 'none';
+    o.classList.remove('open');
+    document.getElementById('prev-img').src = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePrev(); });
+
+/* ── Delete photo ── */
+function deletePhoto(filename, tile) {
+    if (!confirm(`Usunąć „${filename}" z dysku? Tej operacji nie można cofnąć.`)) return;
+    fetch(`/gallery/${galleryId}/photo/${encodeURIComponent(filename)}/delete`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.ok) { tile.remove(); showToast('Usunięto', 'ok'); }
+            else showToast('Błąd usuwania', 'err');
+        })
+        .catch(() => showToast('Błąd usuwania', 'err'));
 }
 </script>
 {% endblock %}

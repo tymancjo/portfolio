@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <pattern id="s" width="32" height="32" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="32" height="32" fill="#ebebee"></rect>
+      <rect width="16" height="32" fill="#e1e1e6"></rect>
+    </pattern>
+  </defs>
+  <rect width="900" height="600" fill="url(#s)"></rect>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#a4a7af" font-family="ui-monospace, Menlo, monospace" font-size="30" letter-spacing="5">FOTO</text>
+</svg>

@@ -1,33 +1,164 @@
 {% extends "base.html" %}
 {% block title_suffix %} — Dashboard{% endblock %}
 
+{% block styles %}
+.galleries-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.g-wrap { position: relative; }
+.g-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    display: block;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.g-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); opacity: 1; }
+.g-card-thumb {
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: #d4d4d8;
+}
+.g-card-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.4s;
+}
+.g-card:hover .g-card-thumb img { transform: scale(1.04); }
+.g-card-body { padding: 0.8rem 1rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+.g-card-name { font-weight: 500; font-size: 0.9rem; word-break: break-all; margin-bottom: 0.15rem; }
+.g-card-meta { font-size: 0.78rem; color: var(--muted); }
+/* Delete button */
+.g-delete {
+    position: absolute;
+    top: 0.5rem; right: 0.5rem;
+    opacity: 0.35;
+    transition: opacity 0.15s;
+    z-index: 2;
+}
+.g-wrap:hover .g-delete { opacity: 1; }
+.g-delete button {
+    background: rgba(220,38,38,0.85);
+    color: #fff; border: none; border-radius: 4px;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 0.8rem; line-height: 1;
+    backdrop-filter: blur(2px);
+}
+.g-delete button:hover { background: var(--danger); }
+/* Drag handle */
+.g-drag {
+    position: absolute;
+    top: 0.5rem; left: 0.5rem;
+    opacity: 0.45;
+    transition: opacity 0.15s;
+    background: rgba(255,255,255,0.92);
+    border-radius: 5px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: #444;
+    cursor: grab; user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    z-index: 2;
+}
+.g-wrap:hover .g-drag { opacity: 1; }
+.g-wrap.sortable-ghost { opacity: 0.35; }
+.g-wrap.sortable-drag { opacity: 0.9; box-shadow: var(--shadow-lg); }
+/* Header */
+.hdr-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.new-form { display: flex; gap: 0.5rem; align-items: center; }
+.new-form input[type="text"] { width: 180px; }
+/* Save order badge */
+#order-badge {
+    font-size: 0.75rem; color: var(--muted);
+    display: none; padding: 0 0.25rem;
+}
+{% endblock %}
+
 {% block content %}
 <div class="container">
-    <h1 style="font-size:1.5rem; margin-bottom:1.5rem; font-weight:500;">Galerie</h1>
+    <div class="page-hdr" style="justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+            <h1 class="page-title">Galerie</h1>
+            <span id="order-badge">Kolejność zapisana ✓</span>
+        </div>
+        <div class="hdr-actions">
+            <form class="new-form" method="post" action="/gallery/new">
+                <input type="text" name="name" placeholder="np. 04_portret">
+                <button type="submit" class="btn btn-primary">+ Galeria</button>
+            </form>
+            <form class="new-form" method="post" action="/gallery/new">
+                <input type="text" name="name" placeholder="np. 05_kolekcja">
+                <button type="submit" class="btn">+ Kolekcja</button>
+            </form>
+        </div>
+    </div>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:1rem; margin-bottom:2rem;">
+    {% if not galleries %}
+    <div style="text-align:center; padding:4rem 2rem; color:var(--muted);">
+        <div style="font-size:3rem; margin-bottom:1rem;">📷</div>
+        <p>Brak galerii. Utwórz pierwszą lub dodaj folder do <code>photos/</code>.</p>
+    </div>
+    {% else %}
+    <div class="galleries-grid" id="galleries-grid">
         {% for g in galleries %}
-        <a href="/gallery/{{ g.id }}" style="text-decoration:none;">
-            <div class="card" style="cursor:pointer; transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
-                    <span style="font-weight:500; color:#1a1a1a;">{{ g.id }}</span>
-                    {% if g.is_collection %}
-                    <span style="font-size:0.7rem; background:#f0f0f0; padding:2px 6px; border-radius:10px; color:#666;">kolekcja</span>
+        <div class="g-wrap" data-id="{{ g.id }}">
+            <div class="g-drag" title="Przeciągnij aby zmienić kolejność">⣿</div>
+            <a href="/gallery/{{ g.id }}" class="g-card">
+                <div class="g-card-thumb">
+                    {% if g.cover_url %}
+                    <img src="{{ g.cover_url }}" alt="{{ g.id }}" loading="lazy">
+                    {% else %}
+                    📷
                     {% endif %}
                 </div>
-                <div style="color:#888; font-size:0.82rem;">{{ g.count }} zdjęć{% if g.is_collection %} w {{ g.sub_dirs|length }} galeriach{% endif %}</div>
-            </div>
-        </a>
+                <div class="g-card-body">
+                    <div>
+                        <div class="g-card-name">{{ g.id }}</div>
+                        <div class="g-card-meta">
+                            {{ g.count }} zdjęć{% if g.is_collection %} &middot; {{ g.sub_dirs|length }} galerie{% endif %}
+                        </div>
+                    </div>
+                    {% if g.is_collection %}<span class="badge">kolekcja</span>{% endif %}
+                </div>
+            </a>
+            <form class="g-delete" method="post" action="/gallery/{{ g.id }}/delete"
+                  onsubmit="return confirm('Usunąć „{{ g.id }}" wraz z wszystkimi zdjęciami? Tej operacji nie można cofnąć.')">
+                <button type="submit" title="Usuń galerię">✕</button>
+            </form>
+        </div>
         {% endfor %}
     </div>
-
-    <div class="card" style="max-width:400px;">
-        <h2 style="font-size:1rem; margin-bottom:1rem; font-weight:500;">Nowa galeria</h2>
-        <form method="post" action="/gallery/new" style="display:flex; gap:0.5rem;">
-            <input type="text" name="name" placeholder="np. 04_portret" style="flex:1;">
-            <button type="submit" class="btn btn-primary">Utwórz</button>
-        </form>
-        <p style="font-size:0.75rem; color:#999; margin-top:0.5rem;">Używaj prefiksu NN_ do sortowania (np. 04_portret).</p>
-    </div>
+    {% endif %}
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const grid = document.getElementById('galleries-grid');
+if (grid && typeof Sortable !== 'undefined') {
+    Sortable.create(grid, {
+        handle: '.g-drag',
+        animation: 180,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        onEnd: function() {
+            const order = Array.from(grid.querySelectorAll('.g-wrap')).map(el => el.dataset.id);
+            fetch('/galleries/reorder', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(order),
+            }).then(() => {
+                const badge = document.getElementById('order-badge');
+                badge.style.display = 'inline';
+                setTimeout(() => { badge.style.display = 'none'; }, 2500);
+            });
+        },
+    });
+}
+</script>
 {% endblock %}

@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title_suffix %} — Artykuły{% endblock %}
+
+{% block styles %}
+.articles-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+}
+.articles-table th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+}
+.articles-table th.th-handle { width: 32px; padding: 0.65rem 0 0.65rem 0.75rem; }
+.articles-table td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+    vertical-align: middle;
+}
+.articles-table tr:last-child td { border-bottom: none; }
+.articles-table tbody tr:hover td { background: #fafafa; }
+.art-title { font-weight: 500; }
+.art-slug { font-size: 0.78rem; color: var(--muted); font-family: monospace; }
+.art-date { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
+.art-actions { display: flex; gap: 0.4rem; align-items: center; justify-content: flex-end; white-space: nowrap; }
+.art-handle {
+    color: #ccc;
+    cursor: grab;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0 0 0.75rem;
+    user-select: none;
+    display: block;
+}
+.art-handle:hover { color: var(--muted); }
+.articles-table tbody tr.sortable-ghost td { background: var(--bg); opacity: 0.5; }
+.articles-table tbody tr.sortable-drag td { background: var(--surface); box-shadow: var(--shadow-lg); }
+.new-art-form { display: flex; gap: 0.5rem; align-items: center; }
+.new-art-form input[type="text"] { width: 200px; }
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+#order-badge {
+    font-size: 0.75rem; color: var(--muted);
+    display: none; padding: 0 0.25rem;
+}
+.art-hidden-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+}
+.articles-table tbody tr.is-hidden td { opacity: 0.55; }
+.articles-table tbody tr.is-hidden:hover td { opacity: 0.75; }
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-hdr" style="justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+            <h1 class="page-title">Artykuły</h1>
+            <span id="order-badge">Kolejność zapisana ✓</span>
+        </div>
+        <form class="new-art-form" method="post" action="/article/new">
+            <input type="text" name="slug" placeholder="np. o-fotografii" pattern="[a-z0-9\-]+" title="małe litery, cyfry i myślniki">
+            <button type="submit" class="btn btn-primary">+ Nowy artykuł</button>
+        </form>
+    </div>
+
+    {% if not articles %}
+    <div class="card empty-state">
+        <div class="empty-state-icon">📝</div>
+        <p>Brak artykułów. Utwórz pierwszy używając formularza powyżej.</p>
+    </div>
+    {% else %}
+    <table class="articles-table">
+        <thead>
+            <tr>
+                <th class="th-handle"></th>
+                <th>Tytuł / Slug</th>
+                <th>Data</th>
+                <th style="text-align:right;">Akcje</th>
+            </tr>
+        </thead>
+        <tbody id="articles-tbody">
+            {% for a in articles %}
+            <tr data-slug="{{ a.slug }}" class="{{ 'is-hidden' if a.hidden else '' }}">
+                <td style="padding:0.7rem 0 0.7rem 0.75rem;">
+                    <span class="art-handle" title="Przeciągnij aby zmienić kolejność">⣿</span>
+                </td>
+                <td>
+                    <div class="art-title">
+                        {{ a.title }}
+                        {% if a.hidden %}<span class="art-hidden-badge">ukryty</span>{% endif %}
+                    </div>
+                    <div class="art-slug">{{ a.slug }}</div>
+                </td>
+                <td class="art-date">{{ a.date or '—' }}</td>
+                <td>
+                    <div class="art-actions">
+                        <button class="btn btn-sm" title="{{ 'Pokaż' if a.hidden else 'Ukryj' }}"
+                                onclick="toggleHidden('{{ a.slug }}', this)">
+                            {{ 'Pokaż' if a.hidden else 'Ukryj' }}
+                        </button>
+                        <a href="/article/{{ a.slug }}" class="btn btn-sm">Edytuj</a>
+                        <form method="post" action="/article/{{ a.slug }}/delete"
+                              onsubmit="return confirm('Usunąć artykuł „{{ a.title }}"? Tej operacji nie można cofnąć.')">
+                            <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const tbody = document.getElementById('articles-tbody');
+if (tbody) {
+    Sortable.create(tbody, {
+        handle: '.art-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        onEnd: function() {
+            const order = Array.from(tbody.querySelectorAll('tr')).map(tr => tr.dataset.slug);
+            fetch('/articles/reorder', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(order),
+            }).then(() => {
+                const badge = document.getElementById('order-badge');
+                badge.style.display = 'inline';
+                setTimeout(() => { badge.style.display = 'none'; }, 2500);
+            });
+        },
+    });
+}
+
+function toggleHidden(slug, btn) {
+    fetch('/article/' + slug + '/toggle-hidden', { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            const row = btn.closest('tr');
+            const badge = row.querySelector('.art-hidden-badge');
+            if (d.hidden) {
+                row.classList.add('is-hidden');
+                btn.textContent = 'Pokaż';
+                btn.title = 'Pokaż';
+                if (!badge) {
+                    const titleEl = row.querySelector('.art-title');
+                    const b = document.createElement('span');
+                    b.className = 'art-hidden-badge';
+                    b.textContent = 'ukryty';
+                    titleEl.appendChild(b);
+                }
+            } else {
+                row.classList.remove('is-hidden');
+                btn.textContent = 'Ukryj';
+                btn.title = 'Ukryj';
+                if (badge) badge.remove();
+            }
+        });
+}
+</script>
+{% endblock %}

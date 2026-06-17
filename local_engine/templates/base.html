@@ -3,148 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio Engine{% block title_suffix %}{%endblock%}</title>
+    <title>Portfolio Engine{% block title_suffix %}{% endblock %}</title>
     <style>
         :root {
-            --bg: #f8f8f8;
+            --bg: #f4f4f5;
             --surface: #ffffff;
-            --border: #e0e0e0;
-            --text: #1a1a1a;
-            --secondary: #666;
-            --accent: #1a1a1a;
-            --danger: #c0392b;
-            --success: #27ae60;
-            --font: 'Inter', -apple-system, sans-serif;
+            --border: #e4e4e7;
+            --text: #18181b;
+            --muted: #71717a;
+            --accent: #18181b;
+            --accent2: #3f3f46;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --r: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
-        a { color: var(--accent); text-decoration: none; }
-        a:hover { opacity: 0.7; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+        a { color: inherit; text-decoration: none; }
+        a:hover { opacity: 0.75; }
+        button, input, textarea, select { font-family: var(--font); font-size: 14px; }
 
+        /* ── Topbar ── */
         .topbar {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
-            padding: 0.75rem 1.5rem;
+            padding: 0 1.5rem;
+            height: 52px;
             display: flex;
             align-items: center;
-            gap: 2rem;
+            gap: 1rem;
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 200;
+            box-shadow: var(--shadow);
         }
-        .topbar-brand { font-weight: 600; letter-spacing: -0.02em; }
-        .topbar nav { display: flex; gap: 1.5rem; }
-        .topbar nav a { color: var(--secondary); font-size: 0.85rem; }
-        .topbar nav a:hover { color: var(--text); opacity: 1; }
-
-        .build-btn {
-            margin-left: auto;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.4rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-family: var(--font);
+        .topbar-brand { font-weight: 600; font-size: 0.9rem; letter-spacing: -0.02em; white-space: nowrap; }
+        .topbar-sep { color: var(--border); user-select: none; }
+        .topbar-nav { display: flex; gap: 0.15rem; }
+        .topbar-nav a {
+            color: var(--muted); font-size: 0.83rem;
+            padding: 0.3rem 0.65rem; border-radius: 5px;
+            transition: background 0.15s, color 0.15s;
         }
-        .build-btn:hover { opacity: 0.85; }
+        .topbar-nav a:hover { background: var(--bg); color: var(--text); opacity: 1; }
+        .topbar-actions { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; }
 
-        .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
-
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
+        /* ── Buttons ── */
         .btn {
-            display: inline-block;
-            padding: 0.4rem 0.9rem;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-family: var(--font);
-            color: var(--text);
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            padding: 0.42rem 0.9rem; border-radius: 5px;
+            border: 1px solid var(--border); background: var(--surface);
+            cursor: pointer; font-size: 0.83rem; color: var(--text);
+            transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+            white-space: nowrap; line-height: 1; font-family: var(--font);
         }
         .btn:hover { background: var(--bg); opacity: 1; }
         .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-        .btn-primary:hover { opacity: 0.85; }
+        .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); opacity: 1; }
+        .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.78rem; }
         .btn-danger { border-color: var(--danger); color: var(--danger); }
+        .btn-danger:hover { background: #fef2f2; opacity: 1; }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        input[type="text"], input[type="date"], textarea, select {
-            width: 100%;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-family: var(--font);
-            font-size: 0.9rem;
-            background: var(--surface);
-            color: var(--text);
+        /* ── Build drawer ── */
+        #build-drawer {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #1c1c1e;
+            border-top: 1px solid #333;
+            z-index: 300;
+            transform: translateY(100%);
+            transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+            max-height: 40vh;
+            display: flex; flex-direction: column;
         }
-        textarea { resize: vertical; min-height: 120px; }
-        label { display: block; font-size: 0.8rem; color: var(--secondary); margin-bottom: 0.3rem; margin-top: 0.75rem; }
-
+        #build-drawer.open { transform: translateY(0); }
+        .drawer-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.55rem 1rem; border-bottom: 1px solid #333; flex-shrink: 0;
+        }
+        .drawer-title { color: #a1a1aa; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }
+        .drawer-close { color: #71717a; cursor: pointer; background: none; border: none; font-size: 1rem; padding: 0.2rem 0.4rem; line-height: 1; }
+        .drawer-close:hover { color: #fff; }
         #build-log {
-            background: #1a1a1a;
-            color: #ccc;
-            font-family: monospace;
-            font-size: 0.8rem;
-            padding: 1rem;
-            border-radius: 4px;
-            max-height: 300px;
-            overflow-y: auto;
-            display: none;
-            margin-top: 1rem;
-            white-space: pre-wrap;
+            flex: 1; overflow-y: auto;
+            padding: 0.75rem 1rem;
+            font-family: 'Menlo','Monaco','Courier New',monospace;
+            font-size: 0.77rem; color: #d4d4d8;
+            white-space: pre-wrap; line-height: 1.65;
         }
+        .log-ok { color: #4ade80; }
+        .log-err { color: #f87171; }
+
+        /* ── Toast ── */
+        #toast-c {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 400;
+            display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none;
+        }
+        .toast {
+            background: var(--accent); color: #fff;
+            padding: 0.6rem 1.1rem; border-radius: var(--r);
+            font-size: 0.83rem; box-shadow: var(--shadow-lg);
+            animation: t-in 0.2s ease;
+        }
+        .toast.ok { background: var(--success); }
+        .toast.err { background: var(--danger); }
+        @keyframes t-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+        /* ── Layout ── */
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; }
+
+        /* ── Form elements ── */
+        input[type="text"], input[type="date"], textarea, select {
+            width: 100%; padding: 0.48rem 0.75rem;
+            border: 1px solid var(--border); border-radius: 5px;
+            background: var(--surface); color: var(--text);
+            outline: none; transition: border-color 0.15s;
+        }
+        input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 100px; }
+        label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.3rem; }
+
+        /* ── Page header ── */
+        .page-hdr { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.75rem; flex-wrap: wrap; }
+        .page-title { font-size: 1.25rem; font-weight: 600; }
+        .back-link { color: var(--muted); font-size: 0.83rem; white-space: nowrap; }
+        .back-link:hover { color: var(--text); opacity: 1; }
+        .badge {
+            display: inline-block; font-size: 0.68rem;
+            background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+            padding: 0.1rem 0.45rem; border-radius: 99px; white-space: nowrap;
+        }
+        .section-label {
+            font-size: 0.72rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--muted); margin-bottom: 0.75rem;
+        }
+
+        {% block styles %}{% endblock %}
     </style>
+    {% block head %}{% endblock %}
 </head>
 <body>
 <div class="topbar">
     <span class="topbar-brand">Portfolio Engine</span>
-    <nav>
+    <span class="topbar-sep">/</span>
+    <nav class="topbar-nav">
         <a href="/">Dashboard</a>
-        <a href="/article/new-article">Nowy artykuł</a>
-        <a href="../index.html" target="_blank">Podgląd →</a>
+        <a href="/articles">Artykuły</a>
     </nav>
-    <button class="build-btn" onclick="triggerBuild()">▶ Buduj</button>
+    <div class="topbar-actions">
+        <a href="/index.html" target="_blank" class="btn btn-sm">Podgląd →</a>
+        <button class="btn btn-sm btn-primary" id="build-btn" onclick="triggerBuild()">▶ Buduj</button>
+    </div>
 </div>
 
 {% block content %}{% endblock %}
 
-<div id="build-log"></div>
+<!-- Build drawer -->
+<div id="build-drawer">
+    <div class="drawer-header">
+        <span class="drawer-title">Log budowania</span>
+        <button class="drawer-close" onclick="closeDrawer()" title="Zamknij">✕</button>
+    </div>
+    <div id="build-log"></div>
+</div>
+
+<!-- Toasts -->
+<div id="toast-c"></div>
 
 <script>
 function triggerBuild() {
+    const btn = document.getElementById('build-btn');
     const log = document.getElementById('build-log');
-    log.style.display = 'block';
-    log.textContent = 'Budowanie...\n';
-    const src = new EventSource('/build');
-    // POST then listen — workaround: use fetch + SSE pattern
-    fetch('/build', {method: 'POST'}).then(res => {
+    const drawer = document.getElementById('build-drawer');
+    btn.disabled = true;
+    btn.textContent = '⏳ Budowanie...';
+    drawer.classList.add('open');
+    log.textContent = '';
+    fetch('/build', {method:'POST'}).then(res => {
         const reader = res.body.getReader();
-        const decoder = new TextDecoder();
+        const dec = new TextDecoder();
         function read() {
             reader.read().then(({done, value}) => {
-                if (done) return;
-                const text = decoder.decode(value);
-                // parse SSE data lines
-                text.split('\n').forEach(line => {
-                    if (line.startsWith('data: ')) {
-                        log.textContent += line.slice(6) + '\n';
-                        log.scrollTop = log.scrollHeight;
-                    }
+                if (done) { resetBtn(); return; }
+                dec.decode(value).split('\n').forEach(line => {
+                    if (!line.startsWith('data: ')) return;
+                    const msg = line.slice(6);
+                    const s = document.createElement('span');
+                    s.textContent = msg + '\n';
+                    if (msg.startsWith('[done]')) { s.className = 'log-ok'; resetBtn(); showToast('Zbudowano pomyślnie', 'ok'); }
+                    if (/error|Error|Traceback/.test(msg)) s.className = 'log-err';
+                    log.appendChild(s);
+                    log.scrollTop = log.scrollHeight;
                 });
                 read();
             });
         }
         read();
-    });
+    }).catch(() => { resetBtn(); showToast('Błąd budowania', 'err'); });
+}
+function resetBtn() {
+    const btn = document.getElementById('build-btn');
+    btn.disabled = false;
+    btn.textContent = '▶ Buduj';
+}
+function closeDrawer() { document.getElementById('build-drawer').classList.remove('open'); }
+function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast' + (type ? ' ' + type : '');
+    t.textContent = msg;
+    document.getElementById('toast-c').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
 }
 </script>
 </body>

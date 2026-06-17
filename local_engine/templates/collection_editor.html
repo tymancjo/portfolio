@@ -1,20 +1,124 @@
 {% extends "base.html" %}
 {% block title_suffix %} — {{ gallery_id }}{% endblock %}
 
+{% block styles %}
+.coll-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.sub-wrap { position: relative; }
+.sub-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    display: block;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.sub-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); opacity: 1; }
+.sub-thumb {
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: #d4d4d8;
+}
+.sub-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.4s;
+}
+.sub-card:hover .sub-thumb img { transform: scale(1.04); }
+.sub-body { padding: 0.8rem 1rem; }
+.sub-name { font-weight: 500; font-size: 0.9rem; margin-bottom: 0.15rem; }
+.sub-meta { font-size: 0.78rem; color: var(--muted); }
+.sub-delete {
+    position: absolute;
+    top: 0.5rem; right: 0.5rem;
+    opacity: 0.35;
+    transition: opacity 0.15s;
+    z-index: 2;
+}
+.sub-wrap:hover .sub-delete { opacity: 1; }
+.sub-delete button {
+    background: rgba(220,38,38,0.85);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+    backdrop-filter: blur(2px);
+}
+.sub-delete button:hover { background: var(--danger); }
+.new-sub-form { display: flex; gap: 0.5rem; align-items: center; }
+.new-sub-form input[type="text"] { width: 200px; }
+.danger-zone {
+    margin-top: 2rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #fca5a5;
+    border-radius: var(--r);
+    background: #fef2f2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.danger-zone-label { font-size: 0.85rem; color: #991b1b; }
+{% endblock %}
+
 {% block content %}
 <div class="container">
-    <p style="color:#888; font-size:0.85rem; margin-bottom:0.5rem;"><a href="/">← Dashboard</a></p>
-    <h1 style="font-size:1.4rem; font-weight:500; margin-bottom:1.5rem;">{{ gallery_id }} <span style="color:#aaa; font-weight:300;">(kolekcja)</span></h1>
+    <div class="page-hdr" style="justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+        <div style="display:flex; align-items:center; gap:0.85rem;">
+            <a href="/" class="back-link">← Dashboard</a>
+            <h1 class="page-title">{{ gallery_id }}</h1>
+            <span class="badge">kolekcja</span>
+        </div>
+        <form class="new-sub-form" method="post" action="/gallery/{{ gallery_id }}/new-sub">
+            <input type="text" name="name" placeholder="np. 01_jesień">
+            <button type="submit" class="btn btn-primary">+ Nowa podgaleria</button>
+        </form>
+    </div>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:1rem;">
+    {% if not subs %}
+    <div style="text-align:center; padding:3rem 2rem; color:var(--muted);">
+        <p>Brak podgalerii. Dodaj pierwszą używając formularza powyżej.</p>
+    </div>
+    {% else %}
+    <div class="coll-grid">
         {% for sub in subs %}
-        <a href="/gallery/{{ gallery_id }}__{{ sub.id }}" style="text-decoration:none;">
-            <div class="card" style="cursor:pointer;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">
-                <div style="font-weight:500; margin-bottom:0.4rem;">{{ sub.id }}</div>
-                <div style="color:#888; font-size:0.82rem;">{{ sub.count }} zdjęć</div>
-            </div>
-        </a>
+        <div class="sub-wrap">
+            <a href="/gallery/{{ sub.full_id }}" class="sub-card">
+                <div class="sub-thumb">
+                    {% if sub.cover_url %}
+                    <img src="{{ sub.cover_url }}" alt="{{ sub.id }}" loading="lazy">
+                    {% else %}
+                    📷
+                    {% endif %}
+                </div>
+                <div class="sub-body">
+                    <div class="sub-name">{{ sub.id }}</div>
+                    <div class="sub-meta">{{ sub.count }} zdjęć</div>
+                </div>
+            </a>
+            <form class="sub-delete" method="post" action="/gallery/{{ sub.full_id }}/delete"
+                  onsubmit="return confirm('Usunąć podgalerię „{{ sub.id }}" wraz z wszystkimi zdjęciami? Tej operacji nie można cofnąć.')">
+                <button type="submit" title="Usuń podgalerię">✕</button>
+            </form>
+        </div>
         {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="danger-zone">
+        <span class="danger-zone-label">Usuń całą kolekcję <strong>{{ gallery_id }}</strong> wraz ze wszystkimi podgaleriami i zdjęciami.</span>
+        <form method="post" action="/gallery/{{ gallery_id }}/delete"
+              onsubmit="return confirm('Usunąć kolekcję „{{ gallery_id }}" wraz ze wszystkimi podgaleriami i zdjęciami? Tej operacji nie można cofnąć.')">
+            <button type="submit" class="btn btn-danger">Usuń kolekcję</button>
+        </form>
     </div>
 </div>
 {% endblock %}

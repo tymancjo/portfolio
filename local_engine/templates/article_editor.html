@@ -1,30 +1,488 @@
 {% extends "base.html" %}
 {% block title_suffix %} — Artykuł: {{ slug }}{% endblock %}
 
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block styles %}
+/* ── Meta fields ── */
+.meta-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 0.9rem;
+}
+
+/* ── Editor wrapper ── */
+.editor-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+}
+
+/* ── Toolbar ── */
+.ed-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--r) var(--r) 0 0;
+    background: var(--bg);
+    position: sticky;
+    top: 52px;
+    z-index: 50;
+    flex-wrap: wrap;
+}
+.ed-toolbar .sep {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    margin: 0 0.2rem;
+    flex-shrink: 0;
+}
+.tb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.28rem 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1;
+    white-space: nowrap;
+    transition: background 0.12s, border-color 0.12s;
+    min-width: 26px;
+}
+.tb-btn:hover { background: var(--border); border-color: var(--border); }
+.tb-btn.t-bold { font-weight: 700; }
+.tb-btn.t-italic { font-style: italic; font-family: Georgia, serif; }
+.tb-btn svg { width: 14px; height: 14px; display: block; flex-shrink: 0; }
+.tb-save {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    padding: 0.3rem 0.9rem;
+}
+.tb-save:hover { background: var(--accent2); border-color: var(--accent2); }
+#autosave-badge {
+    font-size: 0.72rem;
+    color: var(--muted);
+    padding: 0 0.5rem;
+    display: none;
+    white-space: nowrap;
+}
+
+/* ── Upload progress ── */
+.upload-bar {
+    height: 2px;
+    background: var(--border);
+    display: none;
+    overflow: hidden;
+}
+.upload-bar.active { display: block; }
+.upload-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0;
+    transition: width 0.3s;
+}
+
+/* ── Pane labels row ── */
+.pane-labels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+}
+.pane-label {
+    font-size: 0.67rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 0.35rem 1.25rem;
+    background: var(--bg);
+}
+.pane-label + .pane-label {
+    border-left: 1px solid var(--border);
+}
+
+/* ── Two-pane split ── */
+.editor-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: calc(100vh - 260px);
+    min-height: 380px;
+}
+
+/* ── Editor textarea ── */
+#md-editor {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-right: 1px solid var(--border);
+    border-radius: 0 0 0 var(--r);
+    resize: none;
+    padding: 1rem 1.25rem;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 0.86rem;
+    line-height: 1.72;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    display: block;
+    box-sizing: border-box;
+}
+
+/* ── Preview pane ── */
+.preview-pane {
+    overflow-y: auto;
+    background: #fafafa;
+    border-radius: 0 0 var(--r) 0;
+}
+.preview-body {
+    padding: 1rem 1.75rem 2rem;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.78;
+    color: var(--text);
+}
+.preview-body h1, .preview-body h2, .preview-body h3,
+.preview-body h4, .preview-body h5 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 400;
+    margin: 1.6rem 0 0.7rem;
+    line-height: 1.3;
+}
+.preview-body h1 { font-size: 1.7rem; }
+.preview-body h2 { font-size: 1.35rem; }
+.preview-body h3 { font-size: 1.1rem; }
+.preview-body p { margin-bottom: 0.9rem; }
+.preview-body img { max-width: 100%; border-radius: 4px; display: block; }
+.preview-body figure { margin: 1.25rem 0; }
+.preview-body figcaption {
+    font-size: 0.8rem; color: var(--muted);
+    text-align: center; margin-top: 0.4rem; font-style: italic;
+}
+.preview-body a { color: var(--accent); text-decoration: underline; }
+.preview-body blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 1rem; margin: 1rem 0;
+    color: var(--muted); font-style: italic;
+}
+.preview-body code {
+    background: #ededef; padding: 0.1em 0.38em;
+    border-radius: 3px; font-size: 0.85em;
+    font-family: 'Menlo', 'Monaco', monospace;
+}
+.preview-body pre {
+    background: #1c1c1e; border-radius: var(--r);
+    padding: 1rem; overflow-x: auto; margin: 1rem 0;
+}
+.preview-body pre code { background: none; color: #d4d4d8; padding: 0; }
+.preview-body ul, .preview-body ol { padding-left: 1.5rem; margin-bottom: 0.9rem; }
+.preview-body li { margin-bottom: 0.2rem; }
+.preview-empty {
+    padding: 3rem 1.75rem;
+    color: var(--muted); font-size: 0.85rem; font-style: italic;
+}
+
+/* ── Drop overlay ── */
+#drop-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 600;
+    background: rgba(24,24,27,0.78);
+    backdrop-filter: blur(3px);
+    align-items: center; justify-content: center;
+}
+#drop-overlay.active { display: flex; }
+.drop-box {
+    border: 2px dashed rgba(255,255,255,0.45);
+    border-radius: 12px;
+    padding: 3.5rem 5rem;
+    text-align: center;
+    color: #fff;
+    pointer-events: none;
+}
+.drop-box-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.drop-box-title { font-size: 1.05rem; font-weight: 500; margin-bottom: 0.3rem; }
+.drop-box-sub { font-size: 0.82rem; color: rgba(255,255,255,0.55); }
+{% endblock %}
+
 {% block content %}
-<div class="container" style="max-width:800px;">
-    <p style="color:#888; font-size:0.85rem; margin-bottom:0.5rem;"><a href="/">← Dashboard</a></p>
-    <h1 style="font-size:1.4rem; font-weight:500; margin-bottom:1.5rem;">Artykuł: {{ slug }}</h1>
-
+<!-- Meta fields -->
+<div class="container" style="max-width:1400px; padding-bottom:0.75rem;">
+    <div class="page-hdr">
+        <a href="/" class="back-link">← Dashboard</a>
+        <h1 class="page-title">Artykuł: <code style="font-weight:400; font-size:0.95rem;">{{ slug }}</code></h1>
+    </div>
     <div class="card">
-        <form method="post">
-            <label>Tytuł</label>
-            <input type="text" name="title" value="{{ meta.get('title','') }}">
-
-            <label>Data (YYYY-MM-DD)</label>
-            <input type="text" name="date" value="{{ meta.get('date','') }}" placeholder="2026-06-17">
-
-            <label>Zajawka</label>
-            <input type="text" name="excerpt" value="{{ meta.get('excerpt','') }}">
-
-            <label>Treść (Markdown)</label>
-            <p style="font-size:0.75rem; color:#aaa; margin-bottom:0.3rem;">
-                Zdjęcia: <code>::photo[../photos/gallery/file.jpg]{caption="Opis"}</code>
-            </p>
-            <textarea name="content" rows="20" style="font-family:monospace; font-size:0.85rem;">{{ content }}</textarea>
-
-            <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Zapisz</button>
+        <form id="meta-form" method="post">
+            <div style="display:grid; grid-template-columns:2fr 1fr 2fr; gap:0.9rem; margin-bottom:0.25rem;">
+                <div>
+                    <label>Tytuł</label>
+                    <input type="text" name="title" value="{{ meta.get('title','') }}" placeholder="Tytuł artykułu">
+                </div>
+                <div>
+                    <label>Data</label>
+                    <input type="text" name="date" value="{{ meta.get('date','') }}" placeholder="2026-06-17">
+                </div>
+                <div>
+                    <label>Zajawka</label>
+                    <input type="text" name="excerpt" value="{{ meta.get('excerpt','') }}" placeholder="Krótki opis...">
+                </div>
+            </div>
+            <label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.85rem; color:var(--muted); cursor:pointer; margin-top:0.1rem;">
+                <input type="checkbox" name="hidden" {{ 'checked' if meta.get('hidden') == 'true' else '' }}
+                       style="width:15px; height:15px; accent-color:var(--accent);">
+                Ukryj artykuł (nie pojawi się na stronie publicznej)
+            </label>
+            <input type="hidden" name="content" id="meta-content-mirror">
         </form>
     </div>
 </div>
+
+<!-- Editor (full-width within page margin) -->
+<div style="max-width:1400px; margin:0 auto; padding:0 1.5rem 2rem;">
+    <div class="editor-wrap">
+
+        <!-- Toolbar (sticky below topbar) -->
+        <div class="ed-toolbar">
+            <button class="tb-btn t-bold" title="Pogrubienie (Ctrl+B)" onclick="wrapSel('**','**')">B</button>
+            <button class="tb-btn t-italic" title="Kursywa (Ctrl+I)" onclick="wrapSel('_','_')"><i>I</i></button>
+            <button class="tb-btn" title="Nagłówek H2" onclick="prefixLine('## ')">H₂</button>
+            <button class="tb-btn" title="Nagłówek H3" onclick="prefixLine('### ')">H₃</button>
+            <div class="sep"></div>
+            <button class="tb-btn" title="Cytat" onclick="prefixLine('> ')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+            </button>
+            <button class="tb-btn" title="Lista punktowana" onclick="prefixLine('- ')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+            </button>
+            <button class="tb-btn" title="Lista numerowana" onclick="prefixLine('1. ')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4" stroke-linecap="round"/><path d="M4 10h2" stroke-linecap="round"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" stroke-linecap="round"/></svg>
+            </button>
+            <div class="sep"></div>
+            <button class="tb-btn" title="Link" onclick="insertLink()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+            <button class="tb-btn" title="Wgraj zdjęcie" onclick="document.getElementById('photo-input').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Zdjęcie
+            </button>
+            <span id="autosave-badge">Zapisano draft ✓</span>
+            <button type="submit" form="meta-form" class="tb-btn tb-save" onclick="syncContent()">Zapisz artykuł</button>
+        </div>
+
+        <!-- Upload progress -->
+        <div class="upload-bar" id="upload-bar">
+            <div class="upload-bar-fill" id="upload-bar-fill"></div>
+        </div>
+
+        <!-- Pane labels -->
+        <div class="pane-labels">
+            <div class="pane-label">Markdown</div>
+            <div class="pane-label">Podgląd</div>
+        </div>
+
+        <!-- Split panes -->
+        <div class="editor-split">
+            <textarea id="md-editor" name="content" spellcheck="false" placeholder="Zacznij pisać...">{{ content }}</textarea>
+            <div class="preview-pane">
+                <div class="preview-body" id="md-preview">
+                    <div class="preview-empty">Podgląd pojawi się tutaj…</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<input type="file" id="photo-input" accept="image/*" multiple style="display:none">
+
+<div id="drop-overlay">
+    <div class="drop-box">
+        <div class="drop-box-icon">🖼️</div>
+        <div class="drop-box-title">Upuść zdjęcia tutaj</div>
+        <div class="drop-box-sub">Zostaną wgrane i wstawione do artykułu</div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const slug = {{ slug | tojson }};
+const editor = document.getElementById('md-editor');
+const preview = document.getElementById('md-preview');
+
+marked.setOptions({ breaks: true, gfm: true });
+
+/* ── Preview render ── */
+function renderPreview() {
+    let text = editor.value;
+    if (!text.trim()) {
+        preview.innerHTML = '<div class="preview-empty">Podgląd pojawi się tutaj…</div>';
+        return;
+    }
+    text = text.replace(
+        /::photo\[([^\]]+)\]\{caption="([^"]*)"\}/g,
+        '<figure><img src="$1" loading="lazy" onerror="this.style.opacity=0.3" alt="$2"><figcaption>$2</figcaption></figure>'
+    );
+    preview.innerHTML = marked.parse(text);
+}
+
+let previewTimer;
+editor.addEventListener('input', () => {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreview, 120);
+    scheduleAutosave();
+});
+renderPreview();
+
+/* ── Tab → 2 spaces ── */
+editor.addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        insertAtCursor('  ');
+        return;
+    }
+    if (!e.ctrlKey && !e.metaKey) return;
+    if (e.key === 'b') { e.preventDefault(); wrapSel('**', '**'); }
+    if (e.key === 'i') { e.preventDefault(); wrapSel('_', '_'); }
+    if (e.key === 's') { e.preventDefault(); syncContent(); document.getElementById('meta-form').submit(); }
+});
+
+/* ── Toolbar helpers ── */
+function wrapSel(before, after) {
+    const s = editor.selectionStart, e2 = editor.selectionEnd;
+    const sel = editor.value.slice(s, e2) || 'tekst';
+    const repl = before + sel + after;
+    editor.value = editor.value.slice(0, s) + repl + editor.value.slice(e2);
+    editor.selectionStart = s + before.length;
+    editor.selectionEnd = s + before.length + sel.length;
+    editor.focus();
+    editor.dispatchEvent(new Event('input'));
+}
+
+function prefixLine(prefix) {
+    const s = editor.selectionStart;
+    const lineStart = editor.value.lastIndexOf('\n', s - 1) + 1;
+    editor.value = editor.value.slice(0, lineStart) + prefix + editor.value.slice(lineStart);
+    editor.selectionStart = editor.selectionEnd = s + prefix.length;
+    editor.focus();
+    editor.dispatchEvent(new Event('input'));
+}
+
+function insertLink() {
+    const s = editor.selectionStart, e2 = editor.selectionEnd;
+    const sel = editor.value.slice(s, e2);
+    const url = prompt('URL:');
+    if (!url) return;
+    const repl = '[' + (sel || 'link') + '](' + url + ')';
+    editor.value = editor.value.slice(0, s) + repl + editor.value.slice(e2);
+    editor.selectionStart = editor.selectionEnd = s + repl.length;
+    editor.focus();
+    editor.dispatchEvent(new Event('input'));
+}
+
+function insertAtCursor(text) {
+    const s = editor.selectionStart, e2 = editor.selectionEnd;
+    editor.value = editor.value.slice(0, s) + text + editor.value.slice(e2);
+    editor.selectionStart = editor.selectionEnd = s + text.length;
+    editor.dispatchEvent(new Event('input'));
+}
+
+function syncContent() {
+    document.getElementById('meta-content-mirror').value = editor.value;
+}
+document.getElementById('meta-form').addEventListener('submit', syncContent);
+
+/* ── Autosave ── */
+const DRAFT_KEY = 'article-draft-' + slug;
+const badge = document.getElementById('autosave-badge');
+let autosaveTimer;
+
+function scheduleAutosave() {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+        localStorage.setItem(DRAFT_KEY, editor.value);
+        badge.style.display = 'inline';
+        setTimeout(() => { badge.style.display = 'none'; }, 2500);
+    }, 2000);
+}
+
+const serverContent = editor.value;
+const draft = localStorage.getItem(DRAFT_KEY);
+if (!serverContent && draft) {
+    editor.value = draft;
+    renderPreview();
+}
+
+document.getElementById('meta-form').addEventListener('submit', () => {
+    localStorage.removeItem(DRAFT_KEY);
+});
+
+/* ── Photo upload ── */
+document.getElementById('photo-input').addEventListener('change', e => {
+    uploadFiles(Array.from(e.target.files));
+    e.target.value = '';
+});
+
+function uploadFiles(files) {
+    const valid = files.filter(f => f.type.startsWith('image/'));
+    if (!valid.length) return;
+    const bar = document.getElementById('upload-bar');
+    const fill = document.getElementById('upload-bar-fill');
+    bar.classList.add('active');
+    fill.style.width = '30%';
+    const fd = new FormData();
+    valid.forEach(f => fd.append('photos', f));
+    fetch('/article/' + slug + '/upload', {method: 'POST', body: fd})
+        .then(r => r.json())
+        .then(data => {
+            fill.style.width = '100%';
+            setTimeout(() => { bar.classList.remove('active'); fill.style.width = '0'; }, 500);
+            const snippets = data.saved.map(s => '::photo[' + s.url + ']{caption=""}').join('\n\n');
+            const prefix = editor.selectionStart > 0 ? '\n\n' : '';
+            insertAtCursor(prefix + snippets + '\n\n');
+            showToast('Wgrano ' + data.saved.length + ' zdjęć ✓', 'ok');
+        })
+        .catch(() => {
+            bar.classList.remove('active');
+            fill.style.width = '0';
+            showToast('Błąd wgrywania', 'err');
+        });
+}
+
+/* ── Drag & drop ── */
+const overlay = document.getElementById('drop-overlay');
+let dragDepth = 0;
+
+document.addEventListener('dragenter', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    dragDepth++;
+    overlay.classList.add('active');
+});
+document.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) overlay.classList.remove('active');
+});
+document.addEventListener('dragover', e => {
+    if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+});
+document.addEventListener('drop', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    dragDepth = 0;
+    overlay.classList.remove('active');
+    uploadFiles(Array.from(e.dataTransfer.files));
+});
+</script>
 {% endblock %}
