@@ -445,7 +445,10 @@ def build_portfolio():
         for slug in article_slugs:
             article_path = os.path.join(ARTICLES_DIR, slug)
             meta = load_article_meta(article_path)
+            stale_html = os.path.join(OUTPUT_DIR, f"{slug}.html")
             if meta.get("hidden") == "true":
+                if os.path.exists(stale_html):
+                    os.remove(stale_html)
                 continue
             article_md_path = os.path.join(article_path, "article.md")
             if not os.path.exists(article_md_path):
@@ -461,7 +464,7 @@ def build_portfolio():
                 "date": meta.get("date") or "",
                 "excerpt": meta.get("excerpt") or "",
             })
-        if articles_index_template and articles_list:
+        if articles_index_template:
             generate_articles_index_page(articles_list, articles_index_template, current_year)
 
     print("Build complete.")
