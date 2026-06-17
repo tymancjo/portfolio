@@ -8,14 +8,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const galleryLinks = document.querySelectorAll('.gallery-item');
     let currentImageIndex = 0;
-    let galleryImages = []; // Array of objects: { thumb, full }
+    let galleryImages = []; // [{thumb, full, id, title, description}]
 
-    // Initialize gallery images array
     galleryLinks.forEach((link, index) => {
         const img = link.querySelector('img');
         galleryImages.push({
             thumb: img.src,
-            full: link.getAttribute('href')
+            full: link.getAttribute('href'),
+            id: link.id,
+            title: link.dataset.title || '',
+            description: link.dataset.description || '',
         });
 
         link.addEventListener('click', (e) => {
@@ -24,13 +26,21 @@ document.addEventListener('DOMContentLoaded', () => {
             showImage(currentImageIndex);
             lightbox.style.display = 'block';
             document.body.style.overflow = 'hidden';
-
-            const hint = document.createElement('div');
-            hint.className = 'keyboard-hint';
-            hint.textContent = '← → nawigacja    esc zamknij';
-            lightbox.appendChild(hint);
+            history.replaceState(null, '', '#' + link.id);
         });
     });
+
+    // Open lightbox if URL contains a hash matching a photo id
+    const initialHash = window.location.hash.slice(1);
+    if (initialHash) {
+        const idx = galleryImages.findIndex(img => img.id === initialHash);
+        if (idx !== -1) {
+            currentImageIndex = idx;
+            showImage(currentImageIndex);
+            lightbox.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+    }
 
     lightbox.addEventListener('click', (e) => {
         if (e.target === lightbox) {
@@ -41,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeLightbox() {
         lightbox.style.display = 'none';
         document.body.style.overflow = '';
+        history.replaceState(null, '', window.location.pathname);
     }
 
     function showImage(index) {
@@ -53,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const data = galleryImages[currentImageIndex];
-        
+
         lightbox.innerHTML = '';
 
         // Close button
@@ -76,14 +87,39 @@ document.addEventListener('DOMContentLoaded', () => {
         nextBtn.onclick = (e) => { e.stopPropagation(); showImage(currentImageIndex + 1); };
         lightbox.appendChild(nextBtn);
 
-        // Main Image
+        // Main image
         const imgElement = document.createElement('img');
         imgElement.src = data.full;
         imgElement.classList.add('lightbox-content');
         lightbox.appendChild(imgElement);
+
+        // Caption (title + optional description)
+        if (data.title) {
+            const caption = document.createElement('div');
+            caption.className = 'lightbox-caption';
+            caption.textContent = data.title;
+            if (data.description) {
+                const sub = document.createElement('span');
+                sub.className = 'lightbox-caption-sub';
+                sub.textContent = data.description;
+                caption.appendChild(sub);
+            }
+            lightbox.appendChild(caption);
+        }
+
+        // Update URL hash on navigation
+        if (data.id) {
+            history.replaceState(null, '', '#' + data.id);
+        }
+
+        // Keyboard hint (first open only, fades out)
+        const hint = document.createElement('div');
+        hint.className = 'keyboard-hint';
+        hint.textContent = '← → nawigacja    esc zamknij';
+        lightbox.appendChild(hint);
     }
 
-    // Touch events
+    // Touch swipe
     let touchStartX = 0;
     let touchEndX = 0;
 
@@ -95,8 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
         touchEndX = e.changedTouches[0].clientX;
         const diff = touchStartX - touchEndX;
         if (Math.abs(diff) > 50) {
-            if (diff > 0) showImage(currentImageIndex + 1); // Swipe left -> next
-            else showImage(currentImageIndex - 1); // Swipe right -> prev
+            if (diff > 0) showImage(currentImageIndex + 1);
+            else showImage(currentImageIndex - 1);
         }
     }, { passive: true });
 

@@ -14,18 +14,28 @@
         <h1 class="site-title">Fotografia Tymancja</h1>
         <nav class="main-nav">
             <a href="index.html" class="active">Galerie</a>
+            <a href="articles.html">Teksty</a>
             <a href="contact.html">Kontakt</a>
         </nav>
-        <div class="intro-text">
-            <p>Nie napiszę tutaj niczego specjalnie natchnionego.</p>
-            <p>Fotografuję, bo jest to dla mnie ważne.</p>
-            <p>A tutaj pokazuję to jak widze świat w moich kadrach.</p>
-        </div>
     </header>
 
+    <section class="hero">
+        <div class="hero-portrait">
+            <img src="tymancjo/22-05-25_DSCF2704_Zielony.jpg" alt="Fotograf">
+        </div>
+        <div class="hero-bio">
+            {{ bio_html }}
+        </div>
+    </section>
+
+    {{ changelog_section_html }}
+
     <main class="index-container">
-        <div class="gallery-links-grid" id="gallery-links">
-            {{ gallery_links }}
+        <div class="section-inner">
+            <h2 class="section-heading">Galerie</h2>
+            <div class="gallery-links-grid" id="gallery-links">
+                {{ gallery_links }}
+            </div>
         </div>
     </main>
 

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title_suffix %} — Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 style="font-size:1.5rem; margin-bottom:1.5rem; font-weight:500;">Galerie</h1>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:1rem; margin-bottom:2rem;">
+        {% for g in galleries %}
+        <a href="/gallery/{{ g.id }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer; transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
+                    <span style="font-weight:500; color:#1a1a1a;">{{ g.id }}</span>
+                    {% if g.is_collection %}
+                    <span style="font-size:0.7rem; background:#f0f0f0; padding:2px 6px; border-radius:10px; color:#666;">kolekcja</span>
+                    {% endif %}
+                </div>
+                <div style="color:#888; font-size:0.82rem;">{{ g.count }} zdjęć{% if g.is_collection %} w {{ g.sub_dirs|length }} galeriach{% endif %}</div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="card" style="max-width:400px;">
+        <h2 style="font-size:1rem; margin-bottom:1rem; font-weight:500;">Nowa galeria</h2>
+        <form method="post" action="/gallery/new" style="display:flex; gap:0.5rem;">
+            <input type="text" name="name" placeholder="np. 04_portret" style="flex:1;">
+            <button type="submit" class="btn btn-primary">Utwórz</button>
+        </form>
+        <p style="font-size:0.75rem; color:#999; margin-top:0.5rem;">Używaj prefiksu NN_ do sortowania (np. 04_portret).</p>
+    </div>
+</div>
+{% endblock %}

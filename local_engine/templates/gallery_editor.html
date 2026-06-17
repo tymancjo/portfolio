@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title_suffix %} — {{ gallery_id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <p style="color:#888; font-size:0.85rem; margin-bottom:0.5rem;"><a href="/">← Dashboard</a></p>
+    <h1 style="font-size:1.4rem; font-weight:500; margin-bottom:1.5rem;">{{ gallery_id }}</h1>
+
+    <!-- Description -->
+    <div class="card" style="margin-bottom:1.5rem;">
+        <h2 style="font-size:0.95rem; font-weight:500; margin-bottom:0.75rem;">Opis galerii (info.md)</h2>
+        <form method="post" action="/gallery/{{ gallery_id }}/description">
+            <textarea name="description" rows="4">{{ description }}</textarea>
+            <button type="submit" class="btn btn-primary" style="margin-top:0.5rem;">Zapisz opis</button>
+        </form>
+    </div>
+
+    <!-- Upload -->
+    <div class="card" style="margin-bottom:1.5rem;">
+        <h2 style="font-size:0.95rem; font-weight:500; margin-bottom:0.75rem;">Dodaj zdjęcia</h2>
+        <input type="file" id="upload-input" accept="image/*" multiple style="width:auto;">
+        <button class="btn btn-primary" style="margin-left:0.5rem;" onclick="uploadPhotos()">Wgraj</button>
+        <div id="upload-status" style="margin-top:0.5rem; font-size:0.82rem; color:#888;"></div>
+    </div>
+
+    <!-- Photo grid (drag-to-reorder) -->
+    <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h2 style="font-size:0.95rem; font-weight:500;">Zdjęcia — przeciągnij aby zmienić kolejność</h2>
+            <button class="btn btn-primary" onclick="saveManifest()">Zapisz kolejność</button>
+        </div>
+        <div id="photo-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:0.75rem;">
+            {% for photo in manifest.photos %}
+            <div class="photo-tile" draggable="true"
+                 data-filename="{{ photo.filename }}"
+                 data-title="{{ photo.title or '' }}"
+                 data-description="{{ photo.description or '' }}"
+                 data-hidden="{{ 'true' if photo.hidden else 'false' }}"
+                 style="border:1px solid #e0e0e0; border-radius:6px; overflow:hidden; cursor:grab; background:#fff; position:relative;">
+                <img src="{{ thumb_prefix }}{{ photo.filename }}"
+                     onerror="this.src='{{ photo_prefix }}{{ photo.filename }}'"
+                     style="width:100%; aspect-ratio:3/2; object-fit:cover; display:block;"
+                     loading="lazy">
+                <div style="padding:0.4rem 0.5rem;">
+                    <div style="font-size:0.72rem; color:#999; word-break:break-all; margin-bottom:0.3rem;">{{ photo.filename }}</div>
+                    <input type="text" placeholder="Tytuł" value="{{ photo.title or '' }}"
+                           class="photo-title-input" style="width:100%; font-size:0.78rem; padding:3px 5px; margin-bottom:3px;">
+                    <input type="text" placeholder="Opis (opcjonalny)" value="{{ photo.description or '' }}"
+                           class="photo-desc-input" style="width:100%; font-size:0.78rem; padding:3px 5px;">
+                    <label style="margin-top:4px; font-size:0.75rem; display:flex; align-items:center; gap:4px; cursor:pointer;">
+                        <input type="checkbox" class="photo-hidden-input" {% if photo.hidden %}checked{% endif %}> Ukryj
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="save-status" style="margin-top:0.75rem; font-size:0.82rem; color:#888;"></div>
+    </div>
+</div>
+
+<script>
+// --- Drag to reorder ---
+const grid = document.getElementById('photo-grid');
+let dragged = null;
+
+grid.addEventListener('dragstart', e => {
+    dragged = e.target.closest('.photo-tile');
+    setTimeout(() => dragged.style.opacity = '0.4', 0);
+});
+grid.addEventListener('dragend', e => {
+    e.target.closest('.photo-tile').style.opacity = '';
+    dragged = null;
+});
+grid.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('.photo-tile');
+    if (target && target !== dragged) {
+        const rect = target.getBoundingClientRect();
+        const after = e.clientX > rect.left + rect.width / 2;
+        grid.insertBefore(dragged, after ? target.nextSibling : target);
+    }
+});
+
+// --- Collect manifest from current DOM state ---
+function buildManifest() {
+    const photos = [];
+    document.querySelectorAll('.photo-tile').forEach((tile, i) => {
+        photos.push({
+            filename: tile.dataset.filename,
+            order: i,
+            title: tile.querySelector('.photo-title-input').value.trim() || null,
+            description: tile.querySelector('.photo-desc-input').value.trim() || null,
+            hidden: tile.querySelector('.photo-hidden-input').checked,
+        });
+    });
+    return {
+        version: 1,
+        title_override: null,
+        cover: null,
+        photos,
+    };
+}
+
+function saveManifest() {
+    const status = document.getElementById('save-status');
+    status.textContent = 'Zapisywanie...';
+    fetch('/gallery/{{ gallery_id }}/manifest', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(buildManifest()),
+    }).then(r => r.json()).then(() => {
+        status.textContent = 'Zapisano ✓';
+        setTimeout(() => status.textContent = '', 2000);
+    });
+}
+
+// --- Upload ---
+function uploadPhotos() {
+    const input = document.getElementById('upload-input');
+    const status = document.getElementById('upload-status');
+    if (!input.files.length) return;
+    const fd = new FormData();
+    for (const f of input.files) fd.append('photos', f);
+    status.textContent = `Wgrywanie ${input.files.length} plików...`;
+    fetch('/gallery/{{ gallery_id }}/upload', {method: 'POST', body: fd})
+        .then(r => r.json())
+        .then(data => {
+            status.textContent = `Wgrano: ${data.saved.join(', ')}. Odśwież stronę.`;
+        });
+}
+</script>
+{% endblock %}

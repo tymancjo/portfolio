@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title_suffix %} — {{ gallery_id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <p style="color:#888; font-size:0.85rem; margin-bottom:0.5rem;"><a href="/">← Dashboard</a></p>
+    <h1 style="font-size:1.4rem; font-weight:500; margin-bottom:1.5rem;">{{ gallery_id }} <span style="color:#aaa; font-weight:300;">(kolekcja)</span></h1>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:1rem;">
+        {% for sub in subs %}
+        <a href="/gallery/{{ gallery_id }}__{{ sub.id }}" style="text-decoration:none;">
+            <div class="card" style="cursor:pointer;" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow=''">
+                <div style="font-weight:500; margin-bottom:0.4rem;">{{ sub.id }}</div>
+                <div style="color:#888; font-size:0.82rem;">{{ sub.count }} zdjęć</div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

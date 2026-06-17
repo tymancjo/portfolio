@@ -8,3 +8,11 @@ dependencies = [
     "markdown2>=2.5.5",
     "pillow>=12.2.0",
 ]
+
+[project.optional-dependencies]
+local = [
+    "flask>=3.0.0",
+]
+
+[project.scripts]
+portfolio-build = "build:build_portfolio"

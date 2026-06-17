@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Engine{% block title_suffix %}{%endblock%}</title>
+    <style>
+        :root {
+            --bg: #f8f8f8;
+            --surface: #ffffff;
+            --border: #e0e0e0;
+            --text: #1a1a1a;
+            --secondary: #666;
+            --accent: #1a1a1a;
+            --danger: #c0392b;
+            --success: #27ae60;
+            --font: 'Inter', -apple-system, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { opacity: 0.7; }
+
+        .topbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar-brand { font-weight: 600; letter-spacing: -0.02em; }
+        .topbar nav { display: flex; gap: 1.5rem; }
+        .topbar nav a { color: var(--secondary); font-size: 0.85rem; }
+        .topbar nav a:hover { color: var(--text); opacity: 1; }
+
+        .build-btn {
+            margin-left: auto;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: var(--font);
+        }
+        .build-btn:hover { opacity: 0.85; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.4rem 0.9rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: var(--font);
+            color: var(--text);
+        }
+        .btn:hover { background: var(--bg); opacity: 1; }
+        .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-danger { border-color: var(--danger); color: var(--danger); }
+
+        input[type="text"], input[type="date"], textarea, select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: var(--font);
+            font-size: 0.9rem;
+            background: var(--surface);
+            color: var(--text);
+        }
+        textarea { resize: vertical; min-height: 120px; }
+        label { display: block; font-size: 0.8rem; color: var(--secondary); margin-bottom: 0.3rem; margin-top: 0.75rem; }
+
+        #build-log {
+            background: #1a1a1a;
+            color: #ccc;
+            font-family: monospace;
+            font-size: 0.8rem;
+            padding: 1rem;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <span class="topbar-brand">Portfolio Engine</span>
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/article/new-article">Nowy artykuł</a>
+        <a href="../index.html" target="_blank">Podgląd →</a>
+    </nav>
+    <button class="build-btn" onclick="triggerBuild()">▶ Buduj</button>
+</div>
+
+{% block content %}{% endblock %}
+
+<div id="build-log"></div>
+
+<script>
+function triggerBuild() {
+    const log = document.getElementById('build-log');
+    log.style.display = 'block';
+    log.textContent = 'Budowanie...\n';
+    const src = new EventSource('/build');
+    // POST then listen — workaround: use fetch + SSE pattern
+    fetch('/build', {method: 'POST'}).then(res => {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        function read() {
+            reader.read().then(({done, value}) => {
+                if (done) return;
+                const text = decoder.decode(value);
+                // parse SSE data lines
+                text.split('\n').forEach(line => {
+                    if (line.startsWith('data: ')) {
+                        log.textContent += line.slice(6) + '\n';
+                        log.scrollTop = log.scrollHeight;
+                    }
+                });
+                read();
+            });
+        }
+        read();
+    });
+}
+</script>
+</body>
+</html>

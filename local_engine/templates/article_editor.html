@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title_suffix %} — Artykuł: {{ slug }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:800px;">
+    <p style="color:#888; font-size:0.85rem; margin-bottom:0.5rem;"><a href="/">← Dashboard</a></p>
+    <h1 style="font-size:1.4rem; font-weight:500; margin-bottom:1.5rem;">Artykuł: {{ slug }}</h1>
+
+    <div class="card">
+        <form method="post">
+            <label>Tytuł</label>
+            <input type="text" name="title" value="{{ meta.get('title','') }}">
+
+            <label>Data (YYYY-MM-DD)</label>
+            <input type="text" name="date" value="{{ meta.get('date','') }}" placeholder="2026-06-17">
+
+            <label>Zajawka</label>
+            <input type="text" name="excerpt" value="{{ meta.get('excerpt','') }}">
+
+            <label>Treść (Markdown)</label>
+            <p style="font-size:0.75rem; color:#aaa; margin-bottom:0.3rem;">
+                Zdjęcia: <code>::photo[../photos/gallery/file.jpg]{caption="Opis"}</code>
+            </p>
+            <textarea name="content" rows="20" style="font-family:monospace; font-size:0.85rem;">{{ content }}</textarea>
+
+            <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Zapisz</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
